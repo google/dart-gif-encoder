@@ -1,7 +1,7 @@
 library gif_test;
 
 import 'package:unittest/unittest.dart';
-import '../lib/gif.dart' as gif;
+import '../lib/gifencoder.dart' as gif;
 
 main() {
   // Based on: http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp

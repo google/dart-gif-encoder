@@ -3,7 +3,7 @@ library gif_web_test;
 import 'package:unittest/unittest.dart';
 import 'package:unittest/html_config.dart';
 import 'dart:html';
-import '../lib/gif.dart' as gif;
+import '../lib/gifencoder.dart' as gif;
 
 main() {
   useHtmlConfiguration();

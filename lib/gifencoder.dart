@@ -1,4 +1,4 @@
-library gif;
+library gifencoder;
 
 import "dart:typed_data";
 
