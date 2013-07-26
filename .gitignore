@@ -1,6 +1,6 @@
 pubspec.lock
 packages/*
-test/packages/*
+test/packages
 */*.dart.js
 */*.dart.js.deps
 */*.dart.js.map
