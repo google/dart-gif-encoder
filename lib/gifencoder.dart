@@ -16,7 +16,7 @@ import "src/lzw.dart" as lzw;
  * which can be created from a canvas element.)
  */
 Uint8List makeGif(int width, int height, List<int> rgba) {
-  return new IndexedImage(width, height, rgba).encodeGif();  
+  return new _IndexedImage(width, height, rgba).encodeGif();  
 }
 
 /**
@@ -40,29 +40,20 @@ class GifBuffer {
   
   /// Returns the bytes of an animated GIF.
   Uint8List build(int framesPerSecond) {
-    return new IndexedAnimation(width, height, _frames).encodeGif(framesPerSecond); 
+    return new _IndexedAnimation(width, height, _frames).encodeGif(framesPerSecond); 
   }
-}
-
-/**
- * Creates an animated GIF from a list of frames. Each frame contains rgba data for the
- * pixels, but the alpha channel is ignored. Throws an exception if the the image has too
- * many colors.
- */
-Uint8List makeAnimatedGif(int width, int height, int framesPerSecond, Iterable<List<int>> rgbaFrames) {
-  return new IndexedAnimation(width, height, rgbaFrames).encodeGif(framesPerSecond);
 }
 
 const maxColorBits = 7;
 const maxColors = 1<<maxColorBits;
 
-class IndexedImage {
+class _IndexedImage {
   final int width;
   final int height;
   final colors = new _ColorTable();
   List<int> pixels;
 
-  IndexedImage(this.width, this.height, List<int> rgba) {   
+  _IndexedImage(this.width, this.height, List<int> rgba) {   
     pixels = colors.indexImage(width, height, rgba);    
     colors.finish();
   }
@@ -78,7 +69,7 @@ class IndexedImage {
 }
 
 /// An animation with a restricted palette.
-class IndexedAnimation {
+class _IndexedAnimation {
   final int width;
   final int height;
   final colors = new _ColorTable();
@@ -91,7 +82,7 @@ class IndexedAnimation {
    * (The input format is the same used by the ImageData class, which can be created
    * from a canvas element.)
    */
-  IndexedAnimation(this.width, this.height, Iterable<List<int>> rgbaFrames) {
+  _IndexedAnimation(this.width, this.height, Iterable<List<int>> rgbaFrames) {
     for (var frame in rgbaFrames) {
       frames.add(colors.indexImage(width, height, frame));      
     }
