@@ -11,7 +11,7 @@ main() {
   test('one black pixel', () {
     var ctx = new CanvasElement(width: 1, height: 1).context2D ..fillStyle = "black" ..fillRect(0, 0, 1, 1);
     var data = ctx.getImageData(0, 0, 1, 1);
-    var blob = new Blob([new gif.IndexedImage(data.width, data.height, data.data).encodeGif()]);
+    var blob = new Blob([gif.makeGif(data.width, data.height, data.data)]);
     
     var f = new FileReader();
     

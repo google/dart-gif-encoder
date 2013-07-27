@@ -32,12 +32,12 @@ async.Future<String> createDataUrl(List<int> bytes) {
 
 main() {
   var ctx = new CanvasElement(width: size, height: size).context2D;
-  var frames = new List<List<int>>();
+  var frames = new gifencoder.GifBuffer(size, size);
   for (var i = 0; i < frameCount; i++) {
     drawSquare(ctx, i);
     frames.add(ctx.getImageData(0, 0, size, size).data);
   }
-  var gif = new gifencoder.IndexedAnimation(size, size, frames).encodeGif(framesPerSecond);
+  var gif = frames.build(framesPerSecond);
   createDataUrl(gif).then((dataUrl) {
     ImageElement elt = query("#gif");
     elt.src = dataUrl;  

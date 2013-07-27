@@ -7,30 +7,66 @@ import "src/lzw.dart" as lzw;
 // Explanation: http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp
 // Also see: http://en.wikipedia.org/wiki/File:Quilt_design_as_46x46_uncompressed_GIF.gif
 
+/**
+ * Creates a GIF from per-pixel rgba data, ignoring the alpha channel.
+ * Returns a list of bytes. Throws an exception if the the image has too
+ * many colors.
+ * 
+ * (The input format is the same as the "data" field of the html.ImageData class,
+ * which can be created from a canvas element.)
+ */
+Uint8List makeGif(int width, int height, List<int> rgba) {
+  return new IndexedImage(width, height, rgba).encodeGif();  
+}
+
+/**
+ * An incomplete GIF animation.
+ */
+class GifBuffer {
+  final int width;
+  final int height;
+  final List<List<int>> _frames = new List<List<int>>();
+  
+  /// Creates an animation of the specified width and height, with zero frames.
+  GifBuffer(this.width, this.height);
+  
+  /**
+   * Adds a frame to the animation. The pixels are specified as rgba data but the alpha channel is
+   * ignored.
+   */
+  void add(List<int> rgba) {
+    _frames.add(rgba);  
+  }
+  
+  /// Returns the bytes of an animated GIF.
+  Uint8List build(int framesPerSecond) {
+    return new IndexedAnimation(width, height, _frames).encodeGif(framesPerSecond); 
+  }
+}
+
+/**
+ * Creates an animated GIF from a list of frames. Each frame contains rgba data for the
+ * pixels, but the alpha channel is ignored. Throws an exception if the the image has too
+ * many colors.
+ */
+Uint8List makeAnimatedGif(int width, int height, int framesPerSecond, Iterable<List<int>> rgbaFrames) {
+  return new IndexedAnimation(width, height, rgbaFrames).encodeGif(framesPerSecond);
+}
+
 const maxColorBits = 7;
 const maxColors = 1<<maxColorBits;
 
-/// An image with a restricted palette.
 class IndexedImage {
   final int width;
   final int height;
   final colors = new _ColorTable();
   List<int> pixels;
 
-  /**
-   * Builds an indexed image from per-pixel rgba data, ignoring the alpha channel.
-   * Throws an exception if the the image has too many colors.
-   * (The input format is the same used by the ImageData class, which can be created
-   * from a canvas element.)
-   */
   IndexedImage(this.width, this.height, List<int> rgba) {   
     pixels = colors.indexImage(width, height, rgba);    
     colors.finish();
   }
-  
-  /**
-   * Converts the image into a GIF, represented as a list of bytes.
-   */
+
   Uint8List encodeGif() {
     return new Uint8List.fromList(
         _header(width, height, colors.bits)
@@ -55,7 +91,7 @@ class IndexedAnimation {
    * (The input format is the same used by the ImageData class, which can be created
    * from a canvas element.)
    */
-  IndexedAnimation(this.width, this.height, List<List<int>> rgbaFrames) {
+  IndexedAnimation(this.width, this.height, Iterable<List<int>> rgbaFrames) {
     for (var frame in rgbaFrames) {
       frames.add(colors.indexImage(width, height, frame));      
     }

@@ -19,8 +19,7 @@ main() {
   bits(String s) => int.parse(s, radix: 2);
   
   test('one black pixel', () {
-    var image = new gif.IndexedImage(1, 1, [0, 0, 0, 0]);
-    List<int> bytes = image.encodeGif();
+    List<int> bytes = gif.makeGif(1, 1, [0, 0, 0, 0]);
     
     var expected = []
       ..addAll(headerBlock)
@@ -38,8 +37,7 @@ main() {
   const startOneByTwoImage = const [0x2c, 0, 0, 0, 0, 1, 0, 2, 0, 0];
 
   test('two black pixels', () {
-    var image = new gif.IndexedImage(1, 2, [0, 0, 0, 0, 0, 0, 0, 0]);
-    List<int> bytes = image.encodeGif();
+    List<int> bytes = gif.makeGif(1, 2, [0, 0, 0, 0, 0, 0, 0, 0]);
     
     var expected = []
       ..addAll(headerBlock)
@@ -57,8 +55,7 @@ main() {
   const startOneByThreeImage = const [0x2c, 0, 0, 0, 0, 1, 0, 3, 0, 0];
   
   test('three black pixels', () {
-    var image = new gif.IndexedImage(1, 3, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    List<int> bytes = image.encodeGif();
+    List<int> bytes = gif.makeGif(1, 3, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     
     var expected = []
       ..addAll(headerBlock)
@@ -76,8 +73,7 @@ main() {
   const startOneByFourImage = const [0x2c, 0, 0, 0, 0, 1, 0, 4, 0, 0];
   
   test('four black pixels', () {
-    var image = new gif.IndexedImage(1, 4, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    List<int> bytes = image.encodeGif();
+    List<int> bytes = gif.makeGif(1, 4, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     
     var expected = []
       ..addAll(headerBlock)
@@ -95,10 +91,9 @@ main() {
   const startOneBySevenImage = const [0x2c, 0, 0, 0, 0, 1, 0, 7, 0, 0];
   
   test('seven black pixels', () {
-    var image = new gif.IndexedImage(1, 7, 
+    List<int> bytes = gif.makeGif(1, 7, 
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    List<int> bytes = image.encodeGif();
     
     // bumps to 4-bit codes at the last pixel
     var expected = []
@@ -118,8 +113,7 @@ main() {
   const redGreenBlueBlack = const [0xff, 0, 0, 0, 0xff, 0, 0, 0, 0xff, 0, 0, 0]; // 3 bytes per color
 
   test('rgb', () {
-    var image = new gif.IndexedImage(3, 1, [0xff, 0, 0, 0, 0, 0xff, 0, 0, 0, 0, 0xff, 0]);
-    List<int> bytes = image.encodeGif();
+    List<int> bytes = gif.makeGif(3, 1, [0xff, 0, 0, 0, 0, 0xff, 0, 0, 0, 0, 0xff, 0]);
  
     var expected = []
       ..addAll(headerBlock)
