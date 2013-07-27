@@ -7,6 +7,9 @@ import "src/lzw.dart" as lzw;
 // Explanation: http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp
 // Also see: http://en.wikipedia.org/wiki/File:Quilt_design_as_46x46_uncompressed_GIF.gif
 
+const maxColorBits = 7;
+const maxColors = 1<<maxColorBits;
+
 /**
  * Creates a GIF from per-pixel rgba data, ignoring the alpha channel.
  * Returns a list of bytes. Throws an exception if the the image has too
@@ -16,11 +19,13 @@ import "src/lzw.dart" as lzw;
  * which can be created from a canvas element.)
  */
 Uint8List makeGif(int width, int height, List<int> rgba) {
-  return new _IndexedImage(width, height, rgba).encodeGif();  
+  var b = new GifBuffer(width, height);
+  b.add(rgba);
+  return b.build(1);
 }
 
 /**
- * An incomplete GIF animation.
+ * An incomplete GIF, possibly animated.
  */
 class GifBuffer {
   final int width;
@@ -28,7 +33,7 @@ class GifBuffer {
   final _colors = new _ColorTableBuilder();
   final _frames = new List<List<int>>();
   
-  /// Creates an animation of the specified width and height, with zero frames.
+  /// Creates an incomplete gif of the specified width and height and zero frames.
   GifBuffer(this.width, this.height);
   
   /**
@@ -39,7 +44,7 @@ class GifBuffer {
     _frames.add(_colors.indexImage(width, height, rgba));  
   }
   
-  /// Returns the bytes of an animated GIF.
+  /// Returns the bytes of the GIF. If more than one frame has been added, it will be animated.
   Uint8List build(int framesPerSecond) {
     var colors = _colors.build();
     int delay = 100 ~/ framesPerSecond;
@@ -49,6 +54,18 @@ class GifBuffer {
     
     List<int> bytes = _header(width, height, colors.bits);
     bytes.addAll(colors.table);
+    
+    if (_frames.length <= 1) {
+      // not animated
+      if (_frames.length == 1) {
+          bytes
+            ..addAll(_startImage(0, 0, width, height))
+            ..addAll(lzw.compress(_frames[0], colors.bits));
+      }
+      bytes.addAll(_trailer());
+      return new Uint8List.fromList(bytes);
+    }
+    
     bytes.addAll(_loop(0));
     
     for (int i = 0; i < _frames.length; i++) {
@@ -60,31 +77,6 @@ class GifBuffer {
     }
     bytes.addAll(_trailer());
     return new Uint8List.fromList(bytes);
-  }
-}
-
-const maxColorBits = 7;
-const maxColors = 1<<maxColorBits;
-
-class _IndexedImage {
-  final int width;
-  final int height;
-  _ColorTable colors;
-  List<int> pixels;
-
-  _IndexedImage(this.width, this.height, List<int> rgba) {   
-    var builder = new _ColorTableBuilder();
-    pixels = builder.indexImage(width, height, rgba);    
-    colors = builder.build();
-  }
-
-  Uint8List encodeGif() {
-    return new Uint8List.fromList(
-        _header(width, height, colors.bits)
-        ..addAll(colors.table)
-        ..addAll(_startImage(0, 0, width, height))
-        ..addAll(lzw.compress(pixels, colors.bits))
-        ..addAll(_trailer()));
   }
 }
 
@@ -127,12 +119,10 @@ class _ColorTableBuilder {
 
 class _ColorTable {
   final List<int> table = new List<int>();
-  final colorToIndex = new Map<int, int>();
   int bits;
   
   _ColorTable(_ColorTableBuilder builder) {
     table.addAll(builder.table);
-    colorToIndex.addAll(builder.colorToIndex);
     for (int bits = 1;; bits++) {
       int colors = 1 << bits;
       if (colors * 3 >= table.length) {
