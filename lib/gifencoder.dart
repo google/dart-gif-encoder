@@ -25,22 +25,41 @@ Uint8List makeGif(int width, int height, List<int> rgba) {
 class GifBuffer {
   final int width;
   final int height;
-  final List<List<int>> _frames = new List<List<int>>();
+  final _colors = new _ColorTableBuilder();
+  final _frames = new List<List<int>>();
   
   /// Creates an animation of the specified width and height, with zero frames.
   GifBuffer(this.width, this.height);
   
   /**
    * Adds a frame to the animation. The pixels are specified as rgba data but the alpha channel is
-   * ignored.
+   * ignored. Throws an exception if we run out of colors.
    */
   void add(List<int> rgba) {
-    _frames.add(rgba);  
+    _frames.add(_colors.indexImage(width, height, rgba));  
   }
   
   /// Returns the bytes of an animated GIF.
   Uint8List build(int framesPerSecond) {
-    return new _IndexedAnimation(width, height, _frames).encodeGif(framesPerSecond); 
+    var colors = _colors.build();
+    int delay = 100 ~/ framesPerSecond;
+    if (delay < 6) {
+      delay = 6; // http://nullsleep.tumblr.com/post/16524517190/animated-gif-minimum-frame-delay-browser-compatibility
+    }
+    
+    List<int> bytes = _header(width, height, colors.bits);
+    bytes.addAll(colors.table);
+    bytes.addAll(_loop(0));
+    
+    for (int i = 0; i < _frames.length; i++) {
+      var frame = _frames[i];
+      bytes
+        ..addAll(_delayNext(delay))
+        ..addAll(_startImage(0, 0, width, height))
+        ..addAll(lzw.compress(frame, colors.bits));
+    }
+    bytes.addAll(_trailer());
+    return new Uint8List.fromList(bytes);
   }
 }
 
@@ -50,12 +69,13 @@ const maxColors = 1<<maxColorBits;
 class _IndexedImage {
   final int width;
   final int height;
-  final colors = new _ColorTable();
+  _ColorTable colors;
   List<int> pixels;
 
   _IndexedImage(this.width, this.height, List<int> rgba) {   
-    pixels = colors.indexImage(width, height, rgba);    
-    colors.finish();
+    var builder = new _ColorTableBuilder();
+    pixels = builder.indexImage(width, height, rgba);    
+    colors = builder.build();
   }
 
   Uint8List encodeGif() {
@@ -68,53 +88,7 @@ class _IndexedImage {
   }
 }
 
-/// An animation with a restricted palette.
-class _IndexedAnimation {
-  final int width;
-  final int height;
-  final colors = new _ColorTable();
-  final frames = new List<List<int>>();
-
-  /**
-   * Builds an indexed image from a set of frames. Each frame contains rgba data for the pixels,
-   * but the alpha channel is ignored.
-   * Throws an exception if the the image has too many colors.
-   * (The input format is the same used by the ImageData class, which can be created
-   * from a canvas element.)
-   */
-  _IndexedAnimation(this.width, this.height, Iterable<List<int>> rgbaFrames) {
-    for (var frame in rgbaFrames) {
-      frames.add(colors.indexImage(width, height, frame));      
-    }
-    colors.finish();
-  }
-
-  /**
-   * Converts the animation into an uncompressed GIF, represented as a list of bytes.
-   */
-  Uint8List encodeGif(int fps) {
-    int delay = 100 ~/ fps;
-    if (delay < 6) {
-      delay = 6; // http://nullsleep.tumblr.com/post/16524517190/animated-gif-minimum-frame-delay-browser-compatibility
-    }
-    
-    List<int> bytes = _header(width, height, colors.bits);
-    bytes.addAll(colors.table);
-    bytes.addAll(_loop(0));
-    
-    for (int i = 0; i < frames.length; i++) {
-      var frame = frames[i];
-      bytes
-        ..addAll(_delayNext(delay))
-        ..addAll(_startImage(0, 0, width, height))
-        ..addAll(lzw.compress(frame, colors.bits));
-    }
-    bytes.addAll(_trailer());
-    return new Uint8List.fromList(bytes);
-  }
-}
-
-class _ColorTable {
+class _ColorTableBuilder {
   final List<int> table = new List<int>();
   final colorToIndex = new Map<int, int>();
   int bits;
@@ -146,7 +120,19 @@ class _ColorTable {
   /**
    * Pads the color table with zeros to the next power of 2 and sets bits.
    */
-  void finish() {
+  _ColorTable build() {
+    return new _ColorTable(this);
+  }
+}
+
+class _ColorTable {
+  final List<int> table = new List<int>();
+  final colorToIndex = new Map<int, int>();
+  int bits;
+  
+  _ColorTable(_ColorTableBuilder builder) {
+    table.addAll(builder.table);
+    colorToIndex.addAll(builder.colorToIndex);
     for (int bits = 1;; bits++) {
       int colors = 1 << bits;
       if (colors * 3 >= table.length) {
@@ -156,12 +142,12 @@ class _ColorTable {
         this.bits = bits;
         return;
       }
-    }
+    }   
   }
   
   int get numColors {
     return table.length ~/ 3;
-  }
+  }  
 }
 
 List<int> _header(int width, int height, int colorBits) {
