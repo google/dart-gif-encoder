@@ -12,7 +12,7 @@ drawSquare(CanvasRenderingContext2D ctx, int frameNumber) {
   var blue = 0;
   for (var i = 0; i < size/2; i++) {
     var drawnFraction = i / (size/2);
-    var red = 128 + (128 * (frameFraction + drawnFraction)).floor() % 128;
+    var red = (256 * (frameFraction + drawnFraction)).floor() % 256;
     ctx.fillStyle = "rgb(${red},${green},${blue})";  
     ctx.fillRect(i, i, size - i*2, size - i*2);  
   }  

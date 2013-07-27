@@ -7,7 +7,7 @@ import "src/lzw.dart" as lzw;
 // Explanation: http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp
 // Also see: http://en.wikipedia.org/wiki/File:Quilt_design_as_46x46_uncompressed_GIF.gif
 
-const maxColorBits = 7;
+const maxColorBits = 8;
 const maxColors = 1<<maxColorBits;
 
 /**
