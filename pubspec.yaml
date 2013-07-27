@@ -1,5 +1,5 @@
 name: gifencoder
-version: 0.2.1
+version: 0.2.2
 author: Brian Slesinsky <brian-web@slesinsky.org>
 description: A library for creating gif files, including animated gifs.
 homepage: https://github.com/google/dart-gif-encoder
