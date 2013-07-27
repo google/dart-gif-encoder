@@ -41,12 +41,20 @@ class IndexedImage {
   }
 }
 
+/// An animation with a restricted palette.
 class IndexedAnimation {
   final int width;
   final int height;
   final colors = new _ColorTable();
   final frames = new List<List<int>>();
-  
+
+  /**
+   * Builds an indexed image from a set of frames. Each frame contains rgba data for the pixels,
+   * but the alpha channel is ignored.
+   * Throws an exception if the the image has too many colors.
+   * (The input format is the same used by the ImageData class, which can be created
+   * from a canvas element.)
+   */
   IndexedAnimation(this.width, this.height, List<List<int>> rgbaFrames) {
     for (var frame in rgbaFrames) {
       frames.add(colors.indexImage(width, height, frame));      

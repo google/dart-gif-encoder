@@ -1,9 +1,9 @@
 library gif_web_test;
 
+import "package:gifencoder/gifencoder.dart" as gif;
 import 'package:unittest/unittest.dart';
 import 'package:unittest/html_config.dart';
 import 'dart:html';
-import '../lib/gifencoder.dart' as gif;
 
 main() {
   useHtmlConfiguration();
