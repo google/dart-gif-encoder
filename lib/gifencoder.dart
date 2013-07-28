@@ -31,7 +31,7 @@ class GifBuffer {
   final int width;
   final int height;
   final _colors = new _ColorTableBuilder();
-  final _frames = new List<List<int>>();
+  final _frames = new List<Uint8List>();
   
   /// Creates an incomplete gif of the specified width and height and zero frames.
   GifBuffer(this.width, this.height);
@@ -52,31 +52,43 @@ class GifBuffer {
       delay = 6; // http://nullsleep.tumblr.com/post/16524517190/animated-gif-minimum-frame-delay-browser-compatibility
     }
     
-    List<int> bytes = _header(width, height, colors.bits);
-    bytes.addAll(colors.table);
+    List<List<int>> bytes = [];
+    bytes.add(_header(width, height, colors.bits));
+    bytes.add(colors.table);
     
     if (_frames.length <= 1) {
       // not animated
       if (_frames.length == 1) {
           bytes
-            ..addAll(_startImage(0, 0, width, height))
-            ..addAll(lzw.compress(_frames[0], colors.bits));
+            ..add(_startImage(0, 0, width, height))
+            ..add(lzw.compress(_frames[0], colors.bits));
       }
-      bytes.addAll(_trailer());
-      return new Uint8List.fromList(bytes);
+    } else {
+      bytes.add(_loop(0));
+      
+      for (int i = 0; i < _frames.length; i++) {
+        var frame = _frames[i];
+        bytes
+        ..add(_delayNext(delay))
+        ..add(_startImage(0, 0, width, height))
+        ..add(lzw.compress(frame, colors.bits));
+      }
+    }
+    bytes.add(_trailer());
+    
+    int len = 0;
+    for (var chunk in bytes) {
+      len += chunk.length;  
     }
     
-    bytes.addAll(_loop(0));
-    
-    for (int i = 0; i < _frames.length; i++) {
-      var frame = _frames[i];
-      bytes
-        ..addAll(_delayNext(delay))
-        ..addAll(_startImage(0, 0, width, height))
-        ..addAll(lzw.compress(frame, colors.bits));
+    Uint8List result = new Uint8List(len);
+    int offset = 0;
+    for (var chunk in bytes) {
+      result.setRange(offset, offset + chunk.length, chunk);
+      offset += chunk.length;
     }
-    bytes.addAll(_trailer());
-    return new Uint8List.fromList(bytes);
+    assert(offset == len);
+    return result;
   }
 }
 
@@ -90,8 +102,8 @@ class _ColorTableBuilder {
    *  Returns the same pixels as color indexes.
    *  Throws an exception if we run out of colors.
    */
-  List<int> indexImage(int width, int height, List<int> rgba) {
-    var pixels = new List<int>(width * height);      
+  Uint8List indexImage(int width, int height, List<int> rgba) {
+    var pixels = new Uint8List(width * height);      
     assert(pixels.length == rgba.length / 4);
     for (int i = 0; i < rgba.length; i += 4) {
       int color = rgba[i] << 16 | rgba[i+1] << 8 | rgba[i+2];
@@ -113,27 +125,23 @@ class _ColorTableBuilder {
    * Pads the color table with zeros to the next power of 2 and sets bits.
    */
   _ColorTable build() {
-    return new _ColorTable(this);
+    for (int bits = 1; bits<=8; bits++) {
+      int colors = 1 << bits;
+      if (colors * 3 >= table.length) {
+        var copy = new Uint8List(colors * 3);
+        copy.setRange(0, table.length, table);
+        return new _ColorTable(bits, copy);
+      }
+    }
+    throw new Exception("internal error; too many colors");
   }
 }
 
 class _ColorTable {
-  final List<int> table = new List<int>();
-  int bits;
-  
-  _ColorTable(_ColorTableBuilder builder) {
-    table.addAll(builder.table);
-    for (int bits = 1;; bits++) {
-      int colors = 1 << bits;
-      if (colors * 3 >= table.length) {
-        while (table.length < colors * 3) {
-          table..add(0);
-        }
-        this.bits = bits;
-        return;
-      }
-    }   
-  }
+  final int bits;
+  final Uint8List table;
+ 
+  _ColorTable(this.bits, this.table);
   
   int get numColors {
     return table.length ~/ 3;

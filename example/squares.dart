@@ -1,4 +1,5 @@
 import 'dart:html';
+import 'dart:typed_data';
 import 'dart:async' as async;
 import "package:gifencoder/gifencoder.dart" as gifencoder;
 
@@ -18,12 +19,13 @@ drawSquare(CanvasRenderingContext2D ctx, int frameNumber) {
   }  
 }
 
-async.Future<String> createDataUrl(List<int> bytes) {
+async.Future<String> createDataUrl(Uint8List bytes) {
   var c = new async.Completer();
   var f = new FileReader();
   f.onLoadEnd.listen((ProgressEvent e) {
     if (f.readyState == FileReader.DONE) {
-      c.complete(f.result);
+      String url = f.result;
+      c.complete(url.replaceFirst("data:;", "data:image/gif;"));
     }    
   });
   f.readAsDataUrl(new Blob([bytes]));
@@ -37,7 +39,7 @@ main() {
     drawSquare(ctx, i);
     frames.add(ctx.getImageData(0, 0, size, size).data);
   }
-  var gif = frames.build(framesPerSecond);
+  Uint8List gif = frames.build(framesPerSecond);
   createDataUrl(gif).then((dataUrl) {
     ImageElement elt = query("#gif");
     elt.src = dataUrl;  
