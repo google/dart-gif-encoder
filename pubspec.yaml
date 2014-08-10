@@ -5,4 +5,4 @@ description: A library for creating gif files, including animated gifs.
 homepage: https://github.com/google/dart-gif-encoder
 dev_dependencies:
   browser: any
-  unittest: any
+  unittest: '>=0.10.0'
